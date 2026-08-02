@@ -102,17 +102,11 @@
 
 
 
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { ApiError } from "./ApiError.js";
 
-// Initialize Gmail SMTP transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Initialize Resend API client
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendOTPSMS = async (email, otp) => {
   try {
@@ -125,9 +119,9 @@ export const sendOTPSMS = async (email, otp) => {
       throw new ApiError(400, "Invalid email address format");
     }
 
-    // Configure email contents
-    const mailOptions = {
-      from: `"FirstLine Platform" <${process.env.EMAIL_USER}>`,
+    // Send email via Resend (HTTP / Port 443)
+    const { data, error } = await resend.emails.send({
+      from: "FirstLine Platform <onboarding@resend.dev>",
       to: email,
       subject: "Your FirstLine Verification Code",
       html: `
@@ -140,15 +134,18 @@ export const sendOTPSMS = async (email, otp) => {
           <p style="color: #718096; font-size: 13px; margin-bottom: 0;">This code is valid for 5 minutes. Do not share it with anyone.</p>
         </div>
       `,
-    };
+    });
 
-    // Send email via SMTP
-    await transporter.sendMail(mailOptions);
+    // Handle API-level errors from Resend
+    if (error) {
+      console.error("Resend API error:", error);
+      throw new ApiError(500, error.message || "Failed to send verification email");
+    }
 
     return true;
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error("Nodemailer error:", error);
+    console.error("Email service error:", error);
     throw new ApiError(500, error.message || "Failed to send verification email");
   }
 };
