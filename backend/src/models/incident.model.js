@@ -1,0 +1,106 @@
+import mongoose from "mongoose";
+
+const incidentSchema = new mongoose.Schema(
+  {
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: ["Fire", "Road", "Theft", "Health", "Other"],
+      required: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+      },
+    },
+    radiusMeters: {
+      type: Number,
+      default: 2000, // meters (2km)
+    },
+    status: {
+      type: String,
+      enum: ["open", "resolved"],
+      default: "open",
+    },
+    responders: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    suggestedVolunteers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    notifiedSuggestedVolunteerIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    suggestedVolunteerNotifiedAt: {
+      type: Date,
+      default: null,
+    },
+    resolvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
+    autoDispatch: {
+      volunteerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      volunteerName: { type: String, default: "" },
+      volunteerPhone: { type: String, default: "" },
+      distanceKm: { type: Number, default: null },
+      rating: { type: Number, default: null },
+      dispatchedAt: { type: Date, default: null },
+      status: {
+        type: String,
+        enum: ["dispatched", "accepted", "declined", "none"],
+        default: "none",
+      },
+      reason: { type: String, default: "" },
+    },
+    severity: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "low",
+    },
+  },
+  { timestamps: true }
+);
+
+incidentSchema.index({ location: "2dsphere" });
+
+export const Incident = mongoose.model("Incident", incidentSchema);
